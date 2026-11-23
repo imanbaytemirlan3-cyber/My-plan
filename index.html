@@ -1,0 +1,2022 @@
+<!DOCTYPE html>
+<html lang="ru" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>Мой План — Ежедневник</title>
+
+  <!-- Apple iOS PWA Meta Tags -->
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Мой План" />
+  <meta name="theme-color" content="#09090B" />
+  <meta name="format-detection" content="telephone=no" />
+
+  <!-- Fonts: Inter fallback + iOS SF Pro system stack -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['-apple-system', 'BlinkMacSystemFont', '"SF Pro Display"', '"SF Pro Text"', 'Inter', 'system-ui', 'sans-serif'],
+          },
+          colors: {
+            ios: {
+              bg: '#09090B',
+              card: '#151519',
+              cardHover: '#1C1C22',
+              border: 'rgba(255,255,255,0.08)',
+              muted: '#8E8E93',
+            }
+          }
+        }
+      }
+    };
+  </script>
+
+  <style>
+    :root {
+      --safe-top: env(safe-area-inset-top, 0px);
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+    }
+
+    * {
+      -webkit-tap-highlight-color: transparent;
+      box-sizing: border-box;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      background-color: #09090B;
+      color: #F4F4F5;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Inter", system-ui, sans-serif;
+      overscroll-behavior-y: none;
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+
+    /* Desktop subtle ambient glow framing the 430px iPhone viewport */
+    @media (min-width: 480px) {
+      body {
+        background:
+          radial-gradient(600px circle at 50% 0%, rgba(244, 63, 94, 0.09), transparent 55%),
+          radial-gradient(500px circle at 85% 65%, rgba(59, 130, 246, 0.08), transparent 60%),
+          radial-gradient(500px circle at 15% 85%, rgba(16, 185, 129, 0.07), transparent 60%),
+          #050507;
+      }
+      .app-shell {
+        box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08), 0 24px 80px rgba(0, 0, 0, 0.85);
+      }
+    }
+
+    /* Frosted Glass Surfaces */
+    .glass-header {
+      background: rgba(9, 9, 11, 0.78);
+      backdrop-filter: blur(22px);
+      -webkit-backdrop-filter: blur(22px);
+      padding-top: calc(var(--safe-top) + 12px);
+    }
+
+    .glass-tabbar {
+      background: rgba(15, 15, 19, 0.84);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      padding-bottom: calc(var(--safe-bottom) + 8px);
+    }
+
+    /* Custom subtle scrollbar hiding */
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+
+    /* Tabular numbers for clocks & timers */
+    .tnum {
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Smooth bottom sheet animation */
+    .sheet-backdrop {
+      transition: opacity 220ms ease;
+    }
+    .sheet-panel {
+      transition: transform 280ms cubic-bezier(0.22, 1, 0.36, 1);
+      padding-bottom: calc(var(--safe-bottom) + 20px);
+    }
+    .sheet-hidden .sheet-backdrop {
+      opacity: 0;
+      pointer-events: none;
+    }
+    .sheet-hidden .sheet-panel {
+      transform: translateY(105%);
+    }
+
+    /* Pulsing live dot */
+    @keyframes pulseRing {
+      0% { transform: scale(0.95); opacity: 0.9; }
+      70% { transform: scale(1.9); opacity: 0; }
+      100% { transform: scale(1.9); opacity: 0; }
+    }
+    .live-ring::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: 9999px;
+      background: currentColor;
+      animation: pulseRing 1.8s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+    }
+
+    /* Subtle tactile press effect */
+    .pressable {
+      transition: transform 120ms ease, background-color 150ms ease, border-color 150ms ease;
+    }
+    .pressable:active {
+      transform: scale(0.975);
+    }
+
+    /* Input styling for dark iOS look */
+    input[type="time"]::-webkit-calendar-picker-indicator {
+      filter: invert(1) opacity(0.65);
+    }
+
+    /* Toast animation */
+    @keyframes toastIn {
+      from { opacity: 0; transform: translate(-50%, -14px) scale(0.96); }
+      to { opacity: 1; transform: translate(-50%, 0) scale(1); }
+    }
+    .toast-animate {
+      animation: toastIn 220ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    }
+  </style>
+</head>
+<body class="min-h-screen w-full flex justify-center selection:bg-rose-500/30">
+
+  <!-- Main Mobile App Container (Full-bleed on iPhone, 430px centered on desktop) -->
+  <div id="app" class="app-shell relative w-full max-w-[430px] min-h-screen bg-[#09090B] flex flex-col">
+
+    <!-- Floating Toast Notification -->
+    <div id="toast-container" class="fixed top-4 left-1/2 -translate-x-1/2 z-[100] pointer-events-none w-full max-w-[390px] px-4 flex justify-center"></div>
+
+    <!-- ========================================================= -->
+    <!-- TAB 1: ПЛАН (DAILY TIMELINE)                              -->
+    <!-- ========================================================= -->
+    <section id="view-plan" class="flex-1 flex flex-col pb-28">
+      <!-- Sticky Frosted Header -->
+      <header class="glass-header sticky top-0 z-30 border-b border-white/[0.07] px-4 pb-3">
+        <div class="flex items-center justify-between gap-2 mb-3">
+          <div class="min-w-0">
+            <div class="flex items-center gap-2">
+              <span id="header-day-title" class="text-[24px] font-bold tracking-tight text-white leading-none">Понедельник</span>
+              <span id="header-today-badge" class="hidden text-[11px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full bg-rose-500/15 text-rose-400 border border-rose-500/25">Сегодня</span>
+            </div>
+            <div class="flex items-center gap-2 mt-1 text-[13px] text-[#8E8E93]">
+              <span id="header-clock" class="tnum font-medium text-zinc-300">00:00</span>
+              <span class="opacity-40">•</span>
+              <span id="header-day-subtitle" class="truncate">Уроки до 16:05</span>
+            </div>
+          </div>
+
+          <!-- Right Controls: Progress Ring, Reset/Settings, Add Slot -->
+          <div class="flex items-center gap-2 shrink-0">
+            <!-- Day Completion Progress Ring -->
+            <div class="relative w-10 h-10 flex items-center justify-center" title="Прогресс дня">
+              <svg class="w-10 h-10 -rotate-90" viewBox="0 0 40 40">
+                <circle cx="20" cy="20" r="16" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="3.2"></circle>
+                <circle id="progress-ring-circle" cx="20" cy="20" r="16" fill="none" stroke="#10B981" stroke-width="3.2"
+                  stroke-linecap="round" stroke-dasharray="100.53" stroke-dashoffset="100.53"
+                  style="transition: stroke-dashoffset 400ms ease, stroke 300ms ease;"></circle>
+              </svg>
+              <span id="progress-ring-text" class="absolute text-[10px] font-bold tnum text-zinc-200">0%</span>
+            </div>
+
+            <!-- Reset / Settings Trigger -->
+            <button id="btn-open-settings" type="button" aria-label="Настройки плана"
+              class="pressable w-11 h-11 rounded-2xl bg-[#151519] border border-white/[0.08] flex items-center justify-center text-zinc-400 hover:text-white">
+              <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-9.75 0h9.75" />
+              </svg>
+            </button>
+
+            <!-- Add New Slot Button -->
+            <button id="btn-add-slot" type="button" aria-label="Добавить слот"
+              class="pressable w-11 h-11 rounded-2xl bg-white text-black flex items-center justify-center shadow-lg shadow-white/10">
+              <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Mon–Sun Horizontal Pill Switcher -->
+        <div id="weekday-switcher" class="grid grid-cols-7 gap-1.5" role="tablist" aria-label="Дни недели">
+          <!-- Dynamically populated -->
+        </div>
+      </header>
+
+      <!-- Main Plan Body -->
+      <main class="px-4 pt-4 space-y-4">
+        <!-- Live "Сейчас" Hero Card -->
+        <div id="now-hero-container"></div>
+
+        <!-- Timeline Header Row -->
+        <div class="flex items-center justify-between pt-1">
+          <h2 class="text-[13px] font-semibold uppercase tracking-wider text-[#8E8E93]">Расписание дня</h2>
+          <span id="timeline-count-label" class="text-[12px] text-[#8E8E93] tnum">0 из 0 выполнено</span>
+        </div>
+
+        <!-- Structured Vertical Timeline -->
+        <div id="timeline-list" class="relative space-y-2.5">
+          <!-- Dynamically populated -->
+        </div>
+      </main>
+    </section>
+
+    <!-- ========================================================= -->
+    <!-- TAB 2: СПОРТ (DUMBBELL WORKOUT TRACKER)                   -->
+    <!-- ========================================================= -->
+    <section id="view-sport" class="hidden flex-1 flex-col pb-28">
+      <header class="glass-header sticky top-0 z-30 border-b border-white/[0.07] px-4 pb-3">
+        <div class="flex items-center justify-between mb-3">
+          <div>
+            <h1 class="text-[24px] font-bold tracking-tight text-white leading-none">Тренировки</h1>
+            <p class="text-[13px] text-[#8E8E93] mt-1">Дома с гантелями • 3 раза в неделю</p>
+          </div>
+          <button id="btn-reset-workout" type="button"
+            class="pressable min-h-[40px] px-3 rounded-xl bg-[#151519] border border-white/[0.08] text-[12px] font-medium text-zinc-300 hover:text-white flex items-center gap-1.5">
+            <svg class="w-4 h-4 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+            </svg>
+            Сбросить
+          </button>
+        </div>
+
+        <!-- iOS Segmented Control (Ср / Пт / Вс) -->
+        <div id="workout-segmented" class="grid grid-cols-3 gap-1 p-1 rounded-2xl bg-[#151519] border border-white/[0.08]">
+          <!-- Dynamically populated -->
+        </div>
+      </header>
+
+      <main class="px-4 pt-4 space-y-4">
+        <!-- Interactive Rest Timer Widget -->
+        <div class="rounded-3xl bg-[#151519] border border-white/[0.08] p-4 relative overflow-hidden">
+          <div class="absolute -right-8 -top-8 w-32 h-32 rounded-full bg-emerald-500/10 blur-2xl pointer-events-none"></div>
+
+          <div class="flex items-center justify-between gap-3">
+            <div class="flex items-center gap-3.5">
+              <!-- Circular Timer Ring -->
+              <div class="relative w-16 h-16 shrink-0 flex items-center justify-center">
+                <svg class="w-16 h-16 -rotate-90" viewBox="0 0 64 64">
+                  <circle cx="32" cy="32" r="27" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="4.5"></circle>
+                  <circle id="timer-ring" cx="32" cy="32" r="27" fill="none" stroke="#10B981" stroke-width="4.5"
+                    stroke-linecap="round" stroke-dasharray="169.65" stroke-dashoffset="0"
+                    style="transition: stroke-dashoffset 250ms linear;"></circle>
+                </svg>
+                <span id="timer-display" class="absolute text-[15px] font-bold tnum text-white">01:15</span>
+              </div>
+
+              <div>
+                <div class="flex items-center gap-1.5">
+                  <span class="text-[12px] font-semibold uppercase tracking-wider text-emerald-400">Таймер отдыха</span>
+                </div>
+                <p id="timer-status-text" class="text-[13px] text-[#8E8E93] mt-0.5">Между подходами 60–90 сек</p>
+                <!-- Preset Pills -->
+                <div class="flex items-center gap-1.5 mt-2">
+                  <button type="button" data-preset="60" class="timer-preset pressable min-h-[32px] px-2.5 rounded-lg text-[12px] font-semibold bg-white/[0.06] text-zinc-300 border border-white/[0.06]">60с</button>
+                  <button type="button" data-preset="75" class="timer-preset pressable min-h-[32px] px-2.5 rounded-lg text-[12px] font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">75с</button>
+                  <button type="button" data-preset="90" class="timer-preset pressable min-h-[32px] px-2.5 rounded-lg text-[12px] font-semibold bg-white/[0.06] text-zinc-300 border border-white/[0.06]">90с</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Controls -->
+            <div class="flex flex-col gap-2 shrink-0">
+              <button id="btn-timer-toggle" type="button" aria-label="Старт или пауза таймера"
+                class="pressable w-12 h-11 rounded-2xl bg-emerald-500 text-black font-semibold flex items-center justify-center shadow-lg shadow-emerald-500/20">
+                <svg id="timer-icon-play" class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M8 5.14v14l11-7-11-7z"/>
+                </svg>
+                <svg id="timer-icon-pause" class="w-5 h-5 hidden" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M6 5h4v14H6zm8 0h4v14h-4z"/>
+                </svg>
+              </button>
+              <button id="btn-timer-reset" type="button" aria-label="Сбросить таймер"
+                class="pressable w-12 h-9 rounded-xl bg-white/[0.06] border border-white/[0.08] text-zinc-300 flex items-center justify-center">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M9 15L3 9m0 0l6-6M3 9h12a6 6 0 010 12h-3" />
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <!-- Auto-start Rest Timer Option -->
+          <div class="mt-3 pt-3 border-t border-white/[0.06] flex items-center justify-between">
+            <span class="text-[12px] text-[#8E8E93]">Автостарт после отметки подхода</span>
+            <button id="btn-autotimer-toggle" type="button" role="switch" aria-checked="true"
+              class="relative w-11 h-6 rounded-full bg-emerald-500 transition-colors duration-200 p-0.5 flex items-center">
+              <span id="autotimer-knob" class="w-5 h-5 rounded-full bg-white shadow transform translate-x-5 transition-transform duration-200"></span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Workout Progress Summary + Warmup Banner -->
+        <div id="workout-warmup-container"></div>
+
+        <!-- Exercise Cards List -->
+        <div id="workout-exercises-list" class="space-y-3">
+          <!-- Dynamically populated -->
+        </div>
+      </main>
+    </section>
+
+    <!-- ========================================================= -->
+    <!-- TAB 3: ПРОЕКТЫ (CLAUDE VIBE-CODING HUB)                   -->
+    <!-- ========================================================= -->
+    <section id="view-projects" class="hidden flex-1 flex-col pb-28">
+      <header class="glass-header sticky top-0 z-30 border-b border-white/[0.07] px-4 pb-3.5">
+        <div class="flex items-center justify-between">
+          <div>
+            <h1 class="text-[24px] font-bold tracking-tight text-white leading-none">Проекты</h1>
+            <p class="text-[13px] text-[#8E8E93] mt-1">Вайбкодинг с Claude • Идеи и задачи</p>
+          </div>
+          <div id="projects-summary-pill" class="px-3 py-1.5 rounded-full bg-orange-500/15 border border-orange-500/25 text-orange-400 text-[12px] font-semibold tnum">
+            0 / 6
+          </div>
+        </div>
+      </header>
+
+      <main class="px-4 pt-4 space-y-4">
+        <!-- Project Cards Container -->
+        <div id="projects-list" class="space-y-4">
+          <!-- Dynamically populated -->
+        </div>
+
+        <!-- Quick Notes / Prompts for Claude -->
+        <div class="rounded-3xl bg-[#151519] border border-white/[0.08] p-4">
+          <div class="flex items-center justify-between mb-2.5">
+            <div class="flex items-center gap-2">
+              <div class="w-8 h-8 rounded-xl bg-orange-500/15 text-orange-400 flex items-center justify-center">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
+                </svg>
+              </div>
+              <div>
+                <h3 class="text-[15px] font-semibold text-white leading-tight">Заметки / промпты для Claude</h3>
+                <p id="notes-save-status" class="text-[11px] text-[#8E8E93]">Автосохранение включено</p>
+              </div>
+            </div>
+            <button id="btn-copy-notes" type="button"
+              class="pressable min-h-[36px] px-3 rounded-xl bg-white/[0.06] border border-white/[0.08] text-[12px] font-medium text-zinc-200 flex items-center gap-1.5">
+              <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 01-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 011.5.124m7.5 10.376h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 9.06 0 00-1.5-.124H9.375c-.621 0-1.125.504-1.125 1.125v3.5m7.5 10.375H9.375a1.125 1.125 0 01-1.125-1.125v-9.25m12 6.625v-1.875a3.375 3.375 0 00-3.375-3.375h-1.5a1.125 1.125 0 01-1.125-1.125v-1.5a3.375 3.375 0 00-3.375-3.375H9.75" />
+              </svg>
+              Копировать
+            </button>
+          </div>
+          <textarea id="claude-notes-textarea" rows="5"
+            placeholder="Скидывай сюда идеи фич для сайта абитуриентов, механики для Роблокса или готовые промпты для Claude..."
+            class="w-full rounded-2xl bg-[#0D0D10] border border-white/[0.08] p-3.5 text-[14px] text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-orange-500/50 resize-y leading-relaxed"></textarea>
+        </div>
+      </main>
+    </section>
+
+    <!-- ========================================================= -->
+    <!-- iOS BOTTOM TAB BAR (FROSTED GLASS)                        -->
+    <!-- ========================================================= -->
+    <nav class="glass-tabbar fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] z-40 border-t border-white/[0.08] px-3 pt-2" aria-label="Навигация">
+      <div class="grid grid-cols-3 gap-1">
+        <button type="button" data-tab="plan" class="tab-btn pressable min-h-[50px] rounded-2xl flex flex-col items-center justify-center gap-1 text-white">
+          <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
+          </svg>
+          <span class="text-[11px] font-semibold">План</span>
+        </button>
+
+        <button type="button" data-tab="sport" class="tab-btn pressable min-h-[50px] rounded-2xl flex flex-col items-center justify-center gap-1 text-[#8E8E93]">
+          <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 9.75h16.5m-16.5 4.5h16.5M6.75 6.75v10.5M17.25 6.75v10.5M4.5 8.25v7.5M19.5 8.25v7.5" />
+          </svg>
+          <span class="text-[11px] font-semibold">Спорт</span>
+        </button>
+
+        <button type="button" data-tab="projects" class="tab-btn pressable min-h-[50px] rounded-2xl flex flex-col items-center justify-center gap-1 text-[#8E8E93]">
+          <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M17.25 6.75L22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3l-4.5 16.5" />
+          </svg>
+          <span class="text-[11px] font-semibold">Проекты</span>
+        </button>
+      </div>
+    </nav>
+
+    <!-- ========================================================= -->
+    <!-- iOS BOTTOM SHEET MODAL: ADD / EDIT TIMELINE SLOT          -->
+    <!-- ========================================================= -->
+    <div id="slot-modal" class="sheet-hidden fixed inset-0 z-50 flex items-end justify-center pointer-events-none">
+      <div id="slot-modal-backdrop" class="sheet-backdrop absolute inset-0 bg-black/70 backdrop-blur-sm pointer-events-auto"></div>
+      <div class="sheet-panel relative w-full max-w-[430px] rounded-t-[28px] bg-[#151519] border-t border-x border-white/[0.1] px-5 pt-3 pointer-events-auto max-h-[90vh] overflow-y-auto">
+        <!-- Drag Handle -->
+        <div class="w-10 h-1 rounded-full bg-white/20 mx-auto mb-4"></div>
+
+        <div class="flex items-center justify-between mb-4">
+          <h3 id="slot-modal-title" class="text-[18px] font-bold text-white">Новый слот</h3>
+          <button id="btn-close-slot-modal" type="button" aria-label="Закрыть"
+            class="pressable w-9 h-9 rounded-full bg-white/[0.08] flex items-center justify-center text-zinc-300">
+            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        <form id="slot-form" class="space-y-4">
+          <input type="hidden" id="slot-id" />
+
+          <!-- Time Row -->
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label for="slot-start" class="block text-[12px] font-medium text-[#8E8E93] mb-1.5">Начало</label>
+              <input id="slot-start" type="time" required
+                class="w-full h-12 rounded-2xl bg-[#0B0B0E] border border-white/[0.1] px-3.5 text-[16px] font-semibold text-white tnum focus:outline-none focus:border-white/30" />
+            </div>
+            <div>
+              <label for="slot-end" class="block text-[12px] font-medium text-[#8E8E93] mb-1.5">Конец</label>
+              <input id="slot-end" type="time" required
+                class="w-full h-12 rounded-2xl bg-[#0B0B0E] border border-white/[0.1] px-3.5 text-[16px] font-semibold text-white tnum focus:outline-none focus:border-white/30" />
+            </div>
+          </div>
+
+          <!-- Title -->
+          <div>
+            <label for="slot-title" class="block text-[12px] font-medium text-[#8E8E93] mb-1.5">Название</label>
+            <input id="slot-title" type="text" required placeholder="Например: Встреча с Амирочкой"
+              class="w-full h-12 rounded-2xl bg-[#0B0B0E] border border-white/[0.1] px-3.5 text-[15px] text-white placeholder-zinc-600 focus:outline-none focus:border-white/30" />
+          </div>
+
+          <!-- Subtitle / Note -->
+          <div>
+            <label for="slot-note" class="block text-[12px] font-medium text-[#8E8E93] mb-1.5">Заметка (необязательно)</label>
+            <input id="slot-note" type="text" placeholder="Детали, предметы или планы..."
+              class="w-full h-12 rounded-2xl bg-[#0B0B0E] border border-white/[0.1] px-3.5 text-[14px] text-white placeholder-zinc-600 focus:outline-none focus:border-white/30" />
+          </div>
+
+          <!-- Category Selector -->
+          <div>
+            <span class="block text-[12px] font-medium text-[#8E8E93] mb-2">Категория</span>
+            <div id="slot-category-grid" class="grid grid-cols-2 gap-2">
+              <!-- Populated dynamically -->
+            </div>
+          </div>
+
+          <!-- Action Buttons -->
+          <div class="pt-2 flex items-center gap-2.5">
+            <button id="btn-delete-slot" type="button"
+              class="hidden pressable h-12 px-4 rounded-2xl bg-rose-500/15 border border-rose-500/30 text-rose-400 font-semibold text-[15px] shrink-0">
+              Удалить
+            </button>
+            <button type="submit"
+              class="pressable flex-1 h-12 rounded-2xl bg-white text-black font-bold text-[15px] shadow-lg shadow-white/10">
+              Сохранить
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- ========================================================= -->
+    <!-- iOS BOTTOM SHEET MODAL: SETTINGS / RESET CONFIRMATION     -->
+    <!-- ========================================================= -->
+    <div id="settings-modal" class="sheet-hidden fixed inset-0 z-50 flex items-end justify-center pointer-events-none">
+      <div id="settings-modal-backdrop" class="sheet-backdrop absolute inset-0 bg-black/70 backdrop-blur-sm pointer-events-auto"></div>
+      <div class="sheet-panel relative w-full max-w-[430px] rounded-t-[28px] bg-[#151519] border-t border-x border-white/[0.1] px-5 pt-3 pointer-events-auto">
+        <div class="w-10 h-1 rounded-full bg-white/20 mx-auto mb-4"></div>
+
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-[18px] font-bold text-white">Управление планом</h3>
+          <button id="btn-close-settings" type="button" aria-label="Закрыть"
+            class="pressable w-9 h-9 rounded-full bg-white/[0.08] flex items-center justify-center text-zinc-300">
+            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        <div class="space-y-2.5">
+          <button id="btn-clear-day-checks" type="button"
+            class="pressable w-full min-h-[52px] px-4 rounded-2xl bg-[#1E1E24] border border-white/[0.08] flex items-center justify-between text-left">
+            <div>
+              <div class="text-[15px] font-semibold text-white">Снять галочки за этот день</div>
+              <div class="text-[12px] text-[#8E8E93]">Очистит выполненные слоты выбранного дня</div>
+            </div>
+            <svg class="w-5 h-5 text-zinc-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </button>
+
+          <button id="btn-restore-default-schedule" type="button"
+            class="pressable w-full min-h-[52px] px-4 rounded-2xl bg-rose-500/10 border border-rose-500/25 flex items-center justify-between text-left">
+            <div>
+              <div class="text-[15px] font-semibold text-rose-400">Сбросить план к базовому</div>
+              <div class="text-[12px] text-rose-300/70">Вернёт исходное расписание Пн–Вс</div>
+            </div>
+            <svg class="w-5 h-5 text-rose-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+            </svg>
+          </button>
+
+          <!-- iPhone Add to Home Screen Tip -->
+          <div class="mt-3 p-3.5 rounded-2xl bg-white/[0.03] border border-white/[0.06] text-[12px] text-[#8E8E93] leading-relaxed">
+            <span class="text-zinc-200 font-semibold">Как поставить на экран iPhone:</span> открой в Safari → нажми <span class="text-zinc-200">«Поделиться»</span> → <span class="text-zinc-200">«На экран «Домой»»</span>. Откроется на весь экран без рамок браузера.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========================================================= -->
+    <!-- CUSTOM CONFIRMATION SHEET (NEVER USES alert/confirm)      -->
+    <!-- ========================================================= -->
+    <div id="confirm-modal" class="sheet-hidden fixed inset-0 z-[60] flex items-end justify-center pointer-events-none">
+      <div id="confirm-modal-backdrop" class="sheet-backdrop absolute inset-0 bg-black/75 backdrop-blur-sm pointer-events-auto"></div>
+      <div class="sheet-panel relative w-full max-w-[430px] rounded-t-[28px] bg-[#151519] border-t border-x border-white/[0.1] px-5 pt-3 pointer-events-auto">
+        <div class="w-10 h-1 rounded-full bg-white/20 mx-auto mb-4"></div>
+        <h3 id="confirm-title" class="text-[18px] font-bold text-white text-center">Подтвердить действие?</h3>
+        <p id="confirm-desc" class="text-[14px] text-[#8E8E93] text-center mt-1.5 mb-5"></p>
+        <div class="grid grid-cols-2 gap-2.5">
+          <button id="btn-confirm-cancel" type="button"
+            class="pressable h-12 rounded-2xl bg-white/[0.08] text-zinc-200 font-semibold text-[15px]">
+            Отмена
+          </button>
+          <button id="btn-confirm-ok" type="button"
+            class="pressable h-12 rounded-2xl bg-rose-500 text-white font-bold text-[15px]">
+            Подтвердить
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ========================================================= -->
+  <!-- APPLICATION LOGIC (STATE, STORAGE, TIMELINE, SPORT, HUB)  -->
+  <!-- ========================================================= -->
+  <script>
+    (function () {
+      'use strict';
+
+      /* -------------------------------------------------------
+       * 1. SAFE STORAGE HELPERS
+       * ----------------------------------------------------- */
+      const STORAGE_PREFIX = 'myplan_ios_v1_';
+
+      function loadJSON(key, fallback) {
+        try {
+          const raw = localStorage.getItem(STORAGE_PREFIX + key);
+          return raw ? JSON.parse(raw) : fallback;
+        } catch (err) {
+          return fallback;
+        }
+      }
+
+      function saveJSON(key, value) {
+        try {
+          localStorage.setItem(STORAGE_PREFIX + key, JSON.stringify(value));
+        } catch (err) {
+          // Storage quota or private browsing fallback
+        }
+      }
+
+      /* -------------------------------------------------------
+       * 2. CATEGORIES & CRISP INLINE SVG ICONS
+       * ----------------------------------------------------- */
+      const CATEGORIES = {
+        love: {
+          label: 'Амирочка',
+          color: '#F43F5E',
+          bg: 'rgba(244, 63, 94, 0.14)',
+          border: 'rgba(244, 63, 94, 0.30)',
+          icon: `<svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M11.645 20.91l-.007-.003-.022-.012a15.247 15.247 0 01-.383-.218 25.18 25.18 0 01-4.244-3.17C4.688 15.36 2.25 12.174 2.25 8.25 2.25 5.322 4.714 3 7.688 3A5.5 5.5 0 0112 5.052 5.5 5.5 0 0116.313 3c2.973 0 5.437 2.322 5.437 5.25 0 3.925-2.438 7.111-4.739 9.256a25.175 25.175 0 01-4.244 3.17 15.247 15.247 0 01-.383.219l-.022.012-.007.004-.003.001a.752.752 0 01-.704 0l-.003-.001z"/></svg>`
+        },
+        study: {
+          label: 'Школа / Англ.',
+          color: '#3B82F6',
+          bg: 'rgba(59, 130, 246, 0.14)',
+          border: 'rgba(59, 130, 246, 0.30)',
+          icon: `<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4.26 10.147a60.436 60.436 0 00-.491 6.347A48.627 48.627 0 0112 20.904a48.627 48.627 0 018.232-4.41 60.46 60.46 0 00-.491-6.347m-15.482 0a50.57 50.57 0 00-2.658-.813A59.905 59.905 0 0112 3.493a59.902 59.902 0 0110.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.697 50.697 0 0112 13.489a50.702 50.702 0 017.74-3.342"/></svg>`
+        },
+        homework: {
+          label: 'ДЗ',
+          color: '#F59E0B',
+          bg: 'rgba(245, 158, 11, 0.14)',
+          border: 'rgba(245, 158, 11, 0.30)',
+          icon: `<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z"/><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 7.125L16.862 4.487"/></svg>`
+        },
+        workout: {
+          label: 'Спорт',
+          color: '#10B981',
+          bg: 'rgba(16, 185, 129, 0.14)',
+          border: 'rgba(16, 185, 129, 0.30)',
+          icon: `<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 9.75h16.5m-16.5 4.5h16.5M6.75 6.75v10.5M17.25 6.75v10.5M4.5 8.25v7.5M19.5 8.25v7.5"/></svg>`
+        },
+        project: {
+          label: 'Проекты',
+          color: '#F97316',
+          bg: 'rgba(249, 115, 22, 0.14)',
+          border: 'rgba(249, 115, 22, 0.30)',
+          icon: `<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17.25 6.75L22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3l-4.5 16.5"/></svg>`
+        },
+        games: {
+          label: 'Игры',
+          color: '#8B5CF6',
+          bg: 'rgba(139, 92, 246, 0.14)',
+          border: 'rgba(139, 92, 246, 0.30)',
+          icon: `<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 12h3m-1.5-1.5v3m6.75-.75h.008v.008H15v-.008zm2.25-1.5h.008v.008h-.008V10.5zM6 6.75h12A3.75 3.75 0 0121.75 10.5v3a3.75 3.75 0 01-3.75 3.75h-.879a2.25 2.25 0 01-1.591-.659l-.879-.879a1.5 1.5 0 00-1.06-.44H10.41a1.5 1.5 0 00-1.06.44l-.879.879a2.25 2.25 0 01-1.591.659H6A3.75 3.75 0 012.25 13.5v-3A3.75 3.75 0 016 6.75z"/></svg>`
+        },
+        rest: {
+          label: 'Отдых / Книга',
+          color: '#06B6D4',
+          bg: 'rgba(6, 182, 212, 0.14)',
+          border: 'rgba(6, 182, 212, 0.30)',
+          icon: `<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25"/></svg>`
+        }
+      };
+
+      /* -------------------------------------------------------
+       * 3. DEFAULT DATA (EXACT SCHEDULE, WORKOUTS, PROJECTS)
+       * ----------------------------------------------------- */
+      const DAYS_META = [
+        { key: 'mon', short: 'Пн', full: 'Понедельник', subtitle: 'Уроки до 16:05 • Английский' },
+        { key: 'tue', short: 'Вт', full: 'Вторник', subtitle: 'Уроки до 16:50' },
+        { key: 'wed', short: 'Ср', full: 'Среда', subtitle: 'Уроки до 15:10 • Верх тела', workoutKey: 'wed' },
+        { key: 'thu', short: 'Чт', full: 'Четверг', subtitle: 'Уроки до 16:05 • Английский' },
+        { key: 'fri', short: 'Пт', full: 'Пятница', subtitle: 'Уроки до 15:10 • Ноги и кор', workoutKey: 'fri' },
+        { key: 'sat', short: 'Сб', full: 'Суббота', subtitle: 'Speaking Club + Английский' },
+        { key: 'sun', short: 'Вс', full: 'Воскресенье', subtitle: 'Фулбоди • Проекты', workoutKey: 'sun' }
+      ];
+
+      function getDefaultSchedule() {
+        return {
+          mon: [
+            { id: 'mon-1', start: '08:30', end: '16:05', cat: 'study', title: 'Уроки в школе', note: 'Bio, PE, PEEM' },
+            { id: 'mon-2', start: '16:05', end: '17:00', cat: 'rest', title: 'Дорога домой, обед, отдых', note: 'Перезагрузка после школы' },
+            { id: 'mon-3', start: '17:00', end: '18:30', cat: 'homework', title: 'Домашнее задание', note: 'Закрыть до английского' },
+            { id: 'mon-4', start: '18:30', end: '19:00', cat: 'rest', title: 'Сборы / книга на английском', note: 'Подготовка к уроку' },
+            { id: 'mon-5', start: '19:00', end: '20:00', cat: 'study', title: 'Английский', note: 'Основное занятие' },
+            { id: 'mon-6', start: '20:00', end: '22:00', cat: 'love', title: 'Время с Амирочкой', note: 'Главный вечерний слот' },
+            { id: 'mon-7', start: '22:00', end: '23:00', cat: 'games', title: 'Игры с друзьями / книга', note: 'По силам + чтение перед сном' },
+            { id: 'mon-8', start: '23:00', end: '23:30', cat: 'rest', title: 'Отбой', note: 'Восстановление' }
+          ],
+          tue: [
+            { id: 'tue-1', start: '08:30', end: '16:50', cat: 'study', title: 'Уроки в школе', note: 'Maths, Bio, Hist-Kaz, Exam' },
+            { id: 'tue-2', start: '16:50', end: '17:45', cat: 'rest', title: 'Дорога домой, обед, отдых', note: 'Восстановиться после длинного дня' },
+            { id: 'tue-3', start: '17:45', end: '19:30', cat: 'love', title: 'Время с Амирочкой', note: 'Дневной/вечерний слот' },
+            { id: 'tue-4', start: '19:30', end: '21:00', cat: 'homework', title: 'Домашнее задание', note: 'Можно в фоне кидать промпты Claude по проектам' },
+            { id: 'tue-5', start: '21:00', end: '22:30', cat: 'games', title: 'Игры с друзьями / вайбкодинг', note: '30–40 мин на «Сайт» или «Роблокс»' },
+            { id: 'tue-6', start: '22:30', end: '23:00', cat: 'rest', title: 'Книга на английском и отбой', note: 'Чтение перед сном' }
+          ],
+          wed: [
+            { id: 'wed-1', start: '08:30', end: '15:10', cat: 'study', title: 'Уроки в школе', note: 'Maths, Phys, DH' },
+            { id: 'wed-2', start: '15:10', end: '16:00', cat: 'rest', title: 'Дорога домой, обед, отдых', note: '' },
+            { id: 'wed-3', start: '16:00', end: '17:15', cat: 'homework', title: 'Домашнее задание', note: '' },
+            { id: 'wed-4', start: '17:15', end: '18:00', cat: 'workout', title: 'Тренировка №1: Верх тела + душ', note: 'Гантели (нажми на вкладку «Спорт»)', linkWorkout: 'wed' },
+            { id: 'wed-5', start: '18:00', end: '20:30', cat: 'love', title: 'Время с Амирочкой', note: 'Идеальный день для встречи/прогулки' },
+            { id: 'wed-6', start: '20:30', end: '21:15', cat: 'project', title: 'Проект: Сайт для абитуриентов', note: 'Вайбкодинг с Claude' },
+            { id: 'wed-7', start: '21:15', end: '22:30', cat: 'games', title: 'Игры с друзьями', note: '' },
+            { id: 'wed-8', start: '22:30', end: '23:00', cat: 'rest', title: 'Книга на английском и отбой', note: '' }
+          ],
+          thu: [
+            { id: 'thu-1', start: '08:30', end: '16:05', cat: 'study', title: 'Уроки в школе', note: 'Chem, Hist-Kaz, Geo' },
+            { id: 'thu-2', start: '16:05', end: '17:00', cat: 'rest', title: 'Дорога домой, обед, отдых', note: '' },
+            { id: 'thu-3', start: '17:00', end: '18:30', cat: 'homework', title: 'Домашнее задание', note: '' },
+            { id: 'thu-4', start: '18:30', end: '19:00', cat: 'rest', title: 'Сборы / книга на английском', note: '' },
+            { id: 'thu-5', start: '19:00', end: '20:00', cat: 'study', title: 'Английский', note: 'Основное занятие' },
+            { id: 'thu-6', start: '20:00', end: '22:00', cat: 'love', title: 'Время с Амирочкой', note: '' },
+            { id: 'thu-7', start: '22:00', end: '23:00', cat: 'games', title: 'Игры с друзьями / книга на английском', note: 'Чтение перед сном и отбой' }
+          ],
+          fri: [
+            { id: 'fri-1', start: '08:30', end: '15:10', cat: 'study', title: 'Уроки в школе', note: 'Chem, Russian, English' },
+            { id: 'fri-2', start: '15:10', end: '16:00', cat: 'rest', title: 'Дорога домой, обед, отдых', note: '' },
+            { id: 'fri-3', start: '16:00', end: '16:45', cat: 'homework', title: 'Быстрое ДЗ', note: 'Разгрузить выходные' },
+            { id: 'fri-4', start: '16:45', end: '17:30', cat: 'workout', title: 'Тренировка №2: Ноги и кор + душ', note: 'Гантели (вкладка «Спорт»)', linkWorkout: 'fri' },
+            { id: 'fri-5', start: '17:30', end: '21:00', cat: 'love', title: 'Время с Амирочкой', note: 'Вечер пятницы' },
+            { id: 'fri-6', start: '21:00', end: '23:59', cat: 'project', title: 'Плейс в Роблоксе + игры с друзьями', note: 'Вайбкодинг с Claude и совместный тест' },
+            { id: 'fri-7', start: '00:00', end: '00:30', cat: 'rest', title: 'Книга на английском', note: 'Перед сном' }
+          ],
+          sat: [
+            { id: 'sat-1', start: '09:30', end: '11:00', cat: 'rest', title: 'Подъём, завтрак, книга на английском', note: 'Спокойное утро' },
+            { id: 'sat-2', start: '11:00', end: '12:30', cat: 'homework', title: 'ДЗ + Сайт для абитуриентов', note: 'Вайбкодинг с Claude в параллели' },
+            { id: 'sat-3', start: '12:30', end: '17:30', cat: 'love', title: 'Время с Амирочкой', note: 'Главный выходной слот' },
+            { id: 'sat-4', start: '17:30', end: '18:00', cat: 'rest', title: 'Дорога / подготовка', note: '' },
+            { id: 'sat-5', start: '18:00', end: '19:00', cat: 'study', title: 'Speaking Club', note: 'Разговорная практика' },
+            { id: 'sat-6', start: '19:00', end: '20:00', cat: 'study', title: 'Английский', note: 'Основное занятие' },
+            { id: 'sat-7', start: '20:00', end: '21:30', cat: 'love', title: 'Ужин, общение с Амирочкой', note: '' },
+            { id: 'sat-8', start: '21:30', end: '23:59', cat: 'project', title: 'Плейс в Роблоксе + игры с друзьями', note: 'Можно тестить плейс вместе' }
+          ],
+          sun: [
+            { id: 'sun-1', start: '10:00', end: '11:30', cat: 'rest', title: 'Подъём, завтрак, книга на английском', note: '' },
+            { id: 'sun-2', start: '11:30', end: '16:30', cat: 'love', title: 'Время с Амирочкой', note: '' },
+            { id: 'sun-3', start: '16:30', end: '17:45', cat: 'homework', title: 'Остатки ДЗ и сборы на неделю', note: '' },
+            { id: 'sun-4', start: '17:45', end: '18:30', cat: 'workout', title: 'Тренировка №3: Фулбоди + душ', note: 'Гантели (вкладка «Спорт»)', linkWorkout: 'sun' },
+            { id: 'sun-5', start: '18:30', end: '19:30', cat: 'project', title: 'Проекты: Сайт / Плейс в Роблоксе', note: 'Основной слот вайбкодинга с Claude' },
+            { id: 'sun-6', start: '19:30', end: '21:00', cat: 'games', title: 'Игры с друзьями', note: 'Или совместный тест плейса' },
+            { id: 'sun-7', start: '21:00', end: '22:30', cat: 'love', title: 'Общение с Амирочкой, отдых', note: '' },
+            { id: 'sun-8', start: '22:30', end: '23:00', cat: 'rest', title: 'Книга на английском и отбой', note: '' }
+          ]
+        };
+      }
+
+      const WORKOUTS_PROGRAM = {
+        wed: {
+          key: 'wed',
+          tabLabel: 'Ср · Верх',
+          title: 'Среда — Верх тела',
+          timeHint: '17:15–18:00 • 5 упражнений',
+          exercises: [
+            { id: 'w-1', name: 'Жим гантелей лёжа на полу (или отжимания)', reps: '3×10–12' },
+            { id: 'w-2', name: 'Тяга гантелей в наклоне', reps: '3×10–12' },
+            { id: 'w-3', name: 'Жим гантелей стоя/сидя (плечи)', reps: '3×10–12' },
+            { id: 'w-4', name: 'Подъём гантелей на бицепс', reps: '3×12' },
+            { id: 'w-5', name: 'Разгибание гантели из-за головы (трицепс)', reps: '3×12' }
+          ]
+        },
+        fri: {
+          key: 'fri',
+          tabLabel: 'Пт · Ноги',
+          title: 'Пятница — Ноги и кор',
+          timeHint: '16:45–17:30 • 5 упражнений',
+          exercises: [
+            { id: 'f-1', name: 'Приседания с гантелями (или гоблет-приседания)', reps: '3×12–15' },
+            { id: 'f-2', name: 'Румынская тяга с гантелями', reps: '3×12' },
+            { id: 'f-3', name: 'Выпады с гантелями', reps: '3×10 на каждую ногу' },
+            { id: 'f-4', name: 'Подъём на носки с гантелями (икры)', reps: '3×15' },
+            { id: 'f-5', name: 'Планка (3×30–45 сек) + скручивания (3×15)', reps: '3 подхода' }
+          ]
+        },
+        sun: {
+          key: 'sun',
+          tabLabel: 'Вс · Фулбоди',
+          title: 'Воскресенье — Фулбоди',
+          timeHint: '17:45–18:30 • 5 упражнений',
+          exercises: [
+            { id: 's-1', name: 'Гоблет-приседания с гантелью', reps: '3×12' },
+            { id: 's-2', name: 'Отжимания от пола / жим гантелей лёжа', reps: '3×10–12' },
+            { id: 's-3', name: 'Тяга гантели одной рукой в наклоне', reps: '3×10–12 на каждую руку' },
+            { id: 's-4', name: 'Махи гантелями в стороны (плечи)', reps: '3×12–15' },
+            { id: 's-5', name: 'Скручивания / «велосипед» на пресс', reps: '3×15–20' }
+          ]
+        }
+      };
+
+      const PROJECT_STATUSES = [
+        { id: 'planned', label: 'Старт со след. выходных', bg: 'rgba(249, 115, 22, 0.14)', border: 'rgba(249, 115, 22, 0.3)', text: '#FB923C' },
+        { id: 'active', label: 'В работе', bg: 'rgba(59, 130, 246, 0.16)', border: 'rgba(59, 130, 246, 0.35)', text: '#60A5FA' },
+        { id: 'done', label: 'Готово', bg: 'rgba(16, 185, 129, 0.16)', border: 'rgba(16, 185, 129, 0.35)', text: '#34D399' }
+      ];
+
+      function getDefaultProjects() {
+        return [
+          {
+            id: 'proj-abitur',
+            title: 'Сайт для абитуриентов',
+            tag: 'Web • Claude',
+            accent: '#F97316',
+            statusIndex: 0,
+            tasks: [
+              { id: 'pa-1', text: 'Описать структуру и фичи в промпте для Claude', done: false },
+              { id: 'pa-2', text: 'Собрать прототип главной страницы', done: false },
+              { id: 'pa-3', text: 'Добавить раздел с вузами/специальностями', done: false }
+            ]
+          },
+          {
+            id: 'proj-roblox',
+            title: 'Плейс в Роблоксе',
+            tag: 'Lua • Тест с друзьями',
+            accent: '#8B5CF6',
+            statusIndex: 0,
+            tasks: [
+              { id: 'pr-1', text: 'Продумать кор-механику игры', done: false },
+              { id: 'pr-2', text: 'Сгенерировать базовые скрипты в Claude', done: false },
+              { id: 'pr-3', text: 'Провести первый тест с друзьями в Пт/Сб', done: false }
+            ]
+          }
+        ];
+      }
+
+      /* -------------------------------------------------------
+       * 4. APPLICATION STATE
+       * ----------------------------------------------------- */
+      function getTodayDayKey() {
+        const jsDay = new Date().getDay(); // 0=Sun, 1=Mon...
+        const map = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+        return map[jsDay];
+      }
+
+      function getDefaultWorkoutKey() {
+        const today = getTodayDayKey();
+        if (today === 'wed' || today === 'fri' || today === 'sun') return today;
+        if (today === 'mon' || today === 'tue') return 'wed';
+        if (today === 'thu') return 'fri';
+        return 'sun';
+      }
+
+      const state = {
+        activeTab: 'plan',
+        selectedDay: getTodayDayKey(),
+        schedule: loadJSON('schedule', getDefaultSchedule()),
+        completedSlots: loadJSON('completed_slots', {}), // { mon: { 'mon-1': true }, ... }
+        selectedWorkout: getDefaultWorkoutKey(),
+        workoutState: loadJSON('workout_state', {
+          warmups: {},   // { wed: true }
+          sets: {},      // { 'w-1': [true, false, false] }
+          weights: {}    // { 'w-1': '8' }
+        }),
+        projects: loadJSON('projects', getDefaultProjects()),
+        claudeNotes: loadJSON('claude_notes', ''),
+        autoStartTimer: loadJSON('auto_timer', true),
+        editingSlotId: null,
+        selectedCategoryInModal: 'love'
+      };
+
+      /* -------------------------------------------------------
+       * 5. TIME UTILITIES (SUPPORTS LATE NIGHT 00:00–03:59)
+       * ----------------------------------------------------- */
+      function timeToMinutes(hhmm) {
+        if (!hhmm || !hhmm.includes(':')) return 0;
+        const [h, m] = hhmm.split(':').map(Number);
+        let total = h * 60 + m;
+        // Treat 00:00–03:59 as end-of-day after midnight so Friday's 00:00–00:30 stays at the bottom
+        if (h < 4) total += 24 * 60;
+        return total;
+      }
+
+      function nowToLogicalMinutes(dateObj) {
+        const h = dateObj.getHours();
+        const m = dateObj.getMinutes();
+        return h * 60 + m;
+      }
+
+      function formatDuration(startStr, endStr) {
+        let diff = timeToMinutes(endStr) - timeToMinutes(startStr);
+        if (diff <= 0) diff = 30;
+        const hrs = Math.floor(diff / 60);
+        const mins = diff % 60;
+        if (hrs > 0 && mins > 0) return `${hrs}ч ${mins}м`;
+        if (hrs > 0) return `${hrs}ч`;
+        return `${mins}м`;
+      }
+
+      function formatRemaining(mins) {
+        const safe = Math.max(1, Math.ceil(mins));
+        const h = Math.floor(safe / 60);
+        const m = safe % 60;
+        if (h > 0 && m > 0) return `${h} ч ${m} мин`;
+        if (h > 0) return `${h} ч`;
+        return `${m} мин`;
+      }
+
+      function sortSlots(slots) {
+        return [...slots].sort((a, b) => timeToMinutes(a.start) - timeToMinutes(b.start));
+      }
+
+      function escapeHTML(str) {
+        return String(str || '')
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#39;');
+      }
+
+      /* -------------------------------------------------------
+       * 6. TOAST & CUSTOM CONFIRMATION MODAL
+       * ----------------------------------------------------- */
+      let toastTimeout = null;
+      function showToast(message, accentColor = '#10B981') {
+        const container = document.getElementById('toast-container');
+        if (!container) return;
+        clearTimeout(toastTimeout);
+        container.innerHTML = `
+          <div class="toast-animate px-4 py-2.5 rounded-full bg-[#1C1C22]/95 border border-white/[0.12] shadow-2xl flex items-center gap-2.5 backdrop-blur-xl">
+            <span class="w-2 h-2 rounded-full shrink-0" style="background:${accentColor}; box-shadow: 0 0 10px ${accentColor}"></span>
+            <span class="text-[13px] font-medium text-white">${escapeHTML(message)}</span>
+          </div>
+        `;
+        toastTimeout = setTimeout(() => {
+          container.innerHTML = '';
+        }, 2600);
+      }
+
+      let confirmCallback = null;
+      function openConfirm({ title, desc, okText = 'Подтвердить', onConfirm }) {
+        document.getElementById('confirm-title').textContent = title;
+        document.getElementById('confirm-desc').textContent = desc;
+        document.getElementById('btn-confirm-ok').textContent = okText;
+        confirmCallback = onConfirm;
+        document.getElementById('confirm-modal').classList.remove('sheet-hidden');
+      }
+
+      function closeConfirm() {
+        document.getElementById('confirm-modal').classList.add('sheet-hidden');
+        confirmCallback = null;
+      }
+
+      /* -------------------------------------------------------
+       * 7. TAB NAVIGATION
+       * ----------------------------------------------------- */
+      function switchTab(tabName) {
+        state.activeTab = tabName;
+        const sections = {
+          plan: document.getElementById('view-plan'),
+          sport: document.getElementById('view-sport'),
+          projects: document.getElementById('view-projects')
+        };
+
+        Object.entries(sections).forEach(([key, el]) => {
+          if (!el) return;
+          if (key === tabName) {
+            el.classList.remove('hidden');
+            el.classList.add('flex');
+          } else {
+            el.classList.add('hidden');
+            el.classList.remove('flex');
+          }
+        });
+
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+          const isCurrent = btn.dataset.tab === tabName;
+          btn.classList.toggle('text-white', isCurrent);
+          btn.classList.toggle('text-[#8E8E93]', !isCurrent);
+          btn.style.background = isCurrent ? 'rgba(255,255,255,0.07)' : 'transparent';
+        });
+
+        window.scrollTo({ top: 0, behavior: 'instant' });
+      }
+
+      /* -------------------------------------------------------
+       * 8. PLAN TAB RENDERING
+       * ----------------------------------------------------- */
+      function dayHasCategoryDot(dayKey) {
+        const slots = state.schedule[dayKey] || [];
+        const hasWorkout = slots.some(s => s.cat === 'workout');
+        const hasEnglish = slots.some(s =>
+          s.cat === 'study' &&
+          (/английск|speaking/i.test(s.title) || /speaking/i.test(s.note || ''))
+        );
+        return { hasWorkout, hasEnglish };
+      }
+
+      function renderWeekdaySwitcher() {
+        const container = document.getElementById('weekday-switcher');
+        const todayKey = getTodayDayKey();
+
+        container.innerHTML = DAYS_META.map(day => {
+          const isSelected = day.key === state.selectedDay;
+          const isToday = day.key === todayKey;
+          const { hasWorkout, hasEnglish } = dayHasCategoryDot(day.key);
+
+          const bgClass = isSelected
+            ? 'bg-white text-black shadow-md shadow-white/10'
+            : isToday
+              ? 'bg-[#1A1A20] text-white border border-rose-500/40'
+              : 'bg-[#151519] text-zinc-400 border border-white/[0.06]';
+
+          return `
+            <button type="button" data-day="${day.key}" role="tab" aria-selected="${isSelected}"
+              class="day-pill pressable min-h-[48px] rounded-2xl flex flex-col items-center justify-center gap-1 py-1.5 ${bgClass}">
+              <span class="text-[13px] font-bold leading-none">${day.short}</span>
+              <span class="flex items-center justify-center gap-1 h-1.5">
+                ${hasWorkout ? `<span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>` : ''}
+                ${hasEnglish ? `<span class="w-1.5 h-1.5 rounded-full bg-blue-500"></span>` : ''}
+                ${!hasWorkout && !hasEnglish ? `<span class="w-1 h-1 rounded-full ${isSelected ? 'bg-black/20' : 'bg-white/10'}"></span>` : ''}
+              </span>
+            </button>
+          `;
+        }).join('');
+      }
+
+      function getCurrentSlotInfo(dayKey) {
+        const slots = sortSlots(state.schedule[dayKey] || []);
+        const now = new Date();
+        const todayKey = getTodayDayKey();
+        const isToday = dayKey === todayKey;
+
+        if (!isToday || slots.length === 0) {
+          return { isToday, mode: 'preview', slots };
+        }
+
+        const nowMins = nowToLogicalMinutes(now);
+        const nowLogical = now.getHours() < 4 ? nowMins + 24 * 60 : nowMins;
+
+        // Check active slot
+        for (let i = 0; i < slots.length; i++) {
+          const s = slots[i];
+          const startM = timeToMinutes(s.start);
+          const endM = timeToMinutes(s.end);
+          if (nowLogical >= startM && nowLogical < endM) {
+            const total = Math.max(1, endM - startM);
+            const elapsed = nowLogical - startM + (now.getSeconds() / 60);
+            const pct = Math.min(100, Math.max(0, (elapsed / total) * 100));
+            const remaining = Math.max(0, endM - nowLogical);
+            const nextSlot = slots[i + 1] || null;
+            return { isToday: true, mode: 'active', slot: s, pct, remaining, nextSlot, slots };
+          }
+        }
+
+        // Check next upcoming slot today
+        const upcoming = slots.find(s => timeToMinutes(s.start) > nowLogical);
+        if (upcoming) {
+          const waitMins = timeToMinutes(upcoming.start) - nowLogical;
+          return { isToday: true, mode: 'upcoming', nextSlot: upcoming, waitMins, slots };
+        }
+
+        return { isToday: true, mode: 'finished', slots };
+      }
+
+      function renderHeroCard() {
+        const container = document.getElementById('now-hero-container');
+        const info = getCurrentSlotInfo(state.selectedDay);
+        const dayMeta = DAYS_META.find(d => d.key === state.selectedDay);
+
+        if (info.mode === 'active') {
+          const cat = CATEGORIES[info.slot.cat] || CATEGORIES.rest;
+          const nextHtml = info.nextSlot
+            ? `<div class="mt-3 pt-2.5 border-t border-white/[0.08] flex items-center justify-between gap-2 text-[12px]">
+                 <span class="text-[#8E8E93] shrink-0">Дальше:</span>
+                 <span class="text-zinc-200 font-medium truncate">${escapeHTML(info.nextSlot.start)} · ${escapeHTML(info.nextSlot.title)}</span>
+               </div>`
+            : `<div class="mt-3 pt-2.5 border-t border-white/[0.08] text-[12px] text-[#8E8E93]">Последний слот на сегодня</div>`;
+
+          const quickAction = info.slot.cat === 'workout'
+            ? `<button type="button" data-jump-workout="${info.slot.linkWorkout || state.selectedDay}" class="mt-2.5 pressable w-full min-h-[40px] rounded-xl bg-emerald-500/20 border border-emerald-500/35 text-emerald-300 text-[13px] font-semibold flex items-center justify-center gap-1.5">Открыть тренировку и таймер →</button>`
+            : info.slot.cat === 'project'
+              ? `<button type="button" data-jump-projects="1" class="mt-2.5 pressable w-full min-h-[40px] rounded-xl bg-orange-500/20 border border-orange-500/35 text-orange-300 text-[13px] font-semibold flex items-center justify-center gap-1.5">Открыть задачи проектов →</button>`
+              : '';
+
+          container.innerHTML = `
+            <div class="rounded-3xl bg-[#151519] border p-4 relative overflow-hidden" style="border-color:${cat.border}">
+              <div class="absolute -right-10 -top-10 w-36 h-36 rounded-full blur-3xl pointer-events-none opacity-30" style="background:${cat.color}"></div>
+              <div class="flex items-center justify-between gap-2 mb-2.5">
+                <div class="flex items-center gap-2">
+                  <span class="relative w-2.5 h-2.5 rounded-full live-ring" style="background:${cat.color}; color:${cat.color}"></span>
+                  <span class="text-[11px] font-bold uppercase tracking-wider" style="color:${cat.color}">Сейчас</span>
+                </div>
+                <span class="text-[12px] font-semibold tnum px-2.5 py-0.5 rounded-full bg-white/[0.07] text-zinc-200">
+                  Осталось ${formatRemaining(info.remaining)}
+                </span>
+              </div>
+
+              <div class="flex items-start gap-3">
+                <div class="w-11 h-11 rounded-2xl flex items-center justify-center shrink-0" style="background:${cat.bg}; color:${cat.color}; border: 1px solid ${cat.border}">
+                  ${cat.icon}
+                </div>
+                <div class="min-w-0 flex-1">
+                  <h2 class="text-[17px] font-bold text-white leading-snug">${escapeHTML(info.slot.title)}</h2>
+                  ${info.slot.note ? `<p class="text-[13px] text-zinc-400 mt-0.5 leading-snug">${escapeHTML(info.slot.note)}</p>` : ''}
+                  <p class="text-[12px] text-[#8E8E93] tnum mt-1">${escapeHTML(info.slot.start)} – ${escapeHTML(info.slot.end)}</p>
+                </div>
+              </div>
+
+              <!-- Live Progress Bar -->
+              <div class="mt-3.5">
+                <div class="w-full h-2 rounded-full bg-white/[0.07] overflow-hidden">
+                  <div class="h-full rounded-full transition-all duration-500" style="width:${info.pct.toFixed(1)}%; background:${cat.color}"></div>
+                </div>
+              </div>
+              ${quickAction}
+              ${nextHtml}
+            </div>
+          `;
+          return;
+        }
+
+        if (info.mode === 'upcoming') {
+          const cat = CATEGORIES[info.nextSlot.cat] || CATEGORIES.rest;
+          container.innerHTML = `
+            <div class="rounded-3xl bg-[#151519] border border-white/[0.08] p-4 relative overflow-hidden">
+              <div class="flex items-center justify-between mb-2">
+                <span class="text-[11px] font-bold uppercase tracking-wider text-cyan-400">Следующий слот</span>
+                <span class="text-[12px] font-semibold tnum text-zinc-300">Через ${formatRemaining(info.waitMins)}</span>
+              </div>
+              <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0" style="background:${cat.bg}; color:${cat.color}">
+                  ${cat.icon}
+                </div>
+                <div class="min-w-0">
+                  <div class="text-[16px] font-bold text-white truncate">${escapeHTML(info.nextSlot.title)}</div>
+                  <div class="text-[13px] text-[#8E8E93] tnum">${escapeHTML(info.nextSlot.start)} – ${escapeHTML(info.nextSlot.end)}</div>
+                </div>
+              </div>
+            </div>
+          `;
+          return;
+        }
+
+        if (info.mode === 'finished') {
+          const doneMap = state.completedSlots[state.selectedDay] || {};
+          const doneCount = info.slots.filter(s => doneMap[s.id]).length;
+          container.innerHTML = `
+            <div class="rounded-3xl bg-[#151519] border border-white/[0.08] p-4 flex items-center justify-between gap-3">
+              <div>
+                <div class="text-[11px] font-bold uppercase tracking-wider text-emerald-400">День завершён</div>
+                <div class="text-[16px] font-bold text-white mt-0.5">Отличная работа, время отдыхать</div>
+                <div class="text-[13px] text-[#8E8E93] mt-0.5">Закрыто слотов: ${doneCount} из ${info.slots.length}</div>
+              </div>
+              <div class="w-11 h-11 rounded-2xl bg-emerald-500/15 text-emerald-400 flex items-center justify-center shrink-0">
+                <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M21.752 15.002A9.718 9.718 0 0118 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 003 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 009.002-5.998z"/>
+                </svg>
+              </div>
+            </div>
+          `;
+          return;
+        }
+
+        // Viewing another weekday (not today)
+        const firstSlot = info.slots[0];
+        const { hasWorkout, hasEnglish } = dayHasCategoryDot(state.selectedDay);
+        const badges = [];
+        if (hasWorkout) badges.push(`<span class="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/15 text-emerald-400 border border-emerald-500/25">Тренировка</span>`);
+        if (hasEnglish) badges.push(`<span class="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-blue-500/15 text-blue-400 border border-blue-500/25">Английский</span>`);
+
+        container.innerHTML = `
+          <div class="rounded-3xl bg-[#151519] border border-white/[0.08] p-4">
+            <div class="flex items-center justify-between gap-2 mb-2">
+              <div class="flex items-center gap-1.5 flex-wrap">
+                <span class="text-[11px] font-bold uppercase tracking-wider text-[#8E8E93]">Обзор дня</span>
+                ${badges.join('')}
+              </div>
+              <button type="button" id="btn-jump-today"
+                class="pressable px-2.5 py-1 rounded-full bg-white/[0.08] text-[11px] font-semibold text-white">
+                К сегодня
+              </button>
+            </div>
+            <div class="text-[15px] font-semibold text-white">${escapeHTML(dayMeta.full)} — ${info.slots.length} слотов</div>
+            ${firstSlot
+              ? `<div class="text-[13px] text-[#8E8E93] mt-1 tnum">Старт в ${escapeHTML(firstSlot.start)}: <span class="text-zinc-300">${escapeHTML(firstSlot.title)}</span></div>`
+              : `<div class="text-[13px] text-[#8E8E93] mt-1">Пока нет запланированных дел</div>`
+            }
+          </div>
+        `;
+      }
+
+      function renderTimeline() {
+        const dayKey = state.selectedDay;
+        const dayMeta = DAYS_META.find(d => d.key === dayKey);
+        const slots = sortSlots(state.schedule[dayKey] || []);
+        const doneMap = state.completedSlots[dayKey] || {};
+        const info = getCurrentSlotInfo(dayKey);
+        const activeId = info.mode === 'active' ? info.slot.id : null;
+
+        // Update Header Texts
+        document.getElementById('header-day-title').textContent = dayMeta.full;
+        document.getElementById('header-day-subtitle').textContent = dayMeta.subtitle;
+        document.getElementById('header-today-badge').classList.toggle('hidden', dayKey !== getTodayDayKey());
+
+        // Update Progress Ring
+        const total = slots.length;
+        const doneCount = slots.filter(s => doneMap[s.id]).length;
+        const pct = total > 0 ? Math.round((doneCount / total) * 100) : 0;
+        const circumference = 100.53;
+        const offset = circumference - (pct / 100) * circumference;
+
+        const ringEl = document.getElementById('progress-ring-circle');
+        ringEl.style.strokeDashoffset = offset;
+        ringEl.style.stroke = pct === 100 ? '#10B981' : pct >= 50 ? '#3B82F6' : '#F43F5E';
+        document.getElementById('progress-ring-text').textContent = `${pct}%`;
+        document.getElementById('timeline-count-label').textContent = `${doneCount} из ${total} выполнено`;
+
+        const listEl = document.getElementById('timeline-list');
+        if (slots.length === 0) {
+          listEl.innerHTML = `
+            <div class="rounded-3xl bg-[#151519] border border-dashed border-white/[0.12] p-8 text-center">
+              <p class="text-[15px] font-semibold text-zinc-300">Слотов на этот день пока нет</p>
+              <p class="text-[13px] text-[#8E8E93] mt-1">Нажми «+» вверху, чтобы добавить дело</p>
+            </div>
+          `;
+          return;
+        }
+
+        listEl.innerHTML = slots.map((slot, idx) => {
+          const cat = CATEGORIES[slot.cat] || CATEGORIES.rest;
+          const isDone = !!doneMap[slot.id];
+          const isActive = slot.id === activeId;
+          const isLast = idx === slots.length - 1;
+          const duration = formatDuration(slot.start, slot.end);
+
+          const quickChip = slot.cat === 'workout'
+            ? `<button type="button" data-jump-workout="${slot.linkWorkout || dayKey}" class="mt-2 inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-[11px] font-semibold">Открыть программу →</button>`
+            : slot.cat === 'project'
+              ? `<button type="button" data-jump-projects="1" class="mt-2 inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-orange-500/15 border border-orange-500/30 text-orange-300 text-[11px] font-semibold">К проектам →</button>`
+              : '';
+
+          return `
+            <div class="flex items-stretch gap-2.5">
+              <!-- Left Time & Vertical Timeline Spine -->
+              <div class="w-[52px] shrink-0 flex flex-col items-end pt-3 relative">
+                <span class="text-[13px] font-semibold tnum leading-none ${isActive ? 'text-white' : 'text-zinc-300'}">${escapeHTML(slot.start)}</span>
+                <span class="text-[11px] tnum text-[#8E8E93] mt-1 leading-none">${escapeHTML(slot.end)}</span>
+                <span class="text-[10px] tnum text-zinc-500 mt-1">${duration}</span>
+              </div>
+
+              <!-- Spine Node & Line -->
+              <div class="w-4 shrink-0 flex flex-col items-center relative pt-3.5">
+                <span class="relative z-10 w-3 h-3 rounded-full shrink-0 ${isActive ? 'live-ring' : ''}"
+                  style="background:${isDone ? '#10B981' : cat.color}; color:${cat.color}; box-shadow: ${isActive ? `0 0 12px ${cat.color}` : 'none'}; opacity: ${isDone ? '0.6' : '1'}">
+                </span>
+                ${!isLast ? `<span class="w-[2px] flex-1 mt-1.5 rounded-full bg-white/[0.08]"></span>` : ''}
+              </div>
+
+              <!-- Event Card -->
+              <div data-edit-slot="${slot.id}"
+                class="slot-card pressable flex-1 min-w-0 rounded-2xl bg-[#151519] border px-3.5 py-3 flex items-start gap-3 cursor-pointer ${isDone ? 'opacity-55' : ''}"
+                style="border-color: ${isActive ? cat.border : 'rgba(255,255,255,0.08)'}; background: ${isActive ? 'linear-gradient(135deg, rgba(255,255,255,0.03), #151519)' : '#151519'}">
+
+                <!-- Category Icon -->
+                <div class="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 mt-0.5"
+                  style="background:${cat.bg}; color:${cat.color};">
+                  ${cat.icon}
+                </div>
+
+                <!-- Text Content -->
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-center gap-1.5">
+                    <h3 class="text-[15px] font-semibold leading-snug ${isDone ? 'line-through text-zinc-400' : 'text-white'}">
+                      ${escapeHTML(slot.title)}
+                    </h3>
+                  </div>
+                  ${slot.note ? `<p class="text-[12.5px] text-[#8E8E93] mt-0.5 leading-snug">${escapeHTML(slot.note)}</p>` : ''}
+                  ${quickChip}
+                </div>
+
+                <!-- Circular Completion Checkbox (generous 44px hit target) -->
+                <button type="button" data-toggle-slot="${slot.id}" aria-label="Отметить выполненным"
+                  class="slot-check -mr-1.5 -mt-1 w-11 h-11 flex items-center justify-center shrink-0 rounded-full">
+                  <span class="w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all duration-150 ${isDone ? 'bg-emerald-500 border-emerald-500 text-black' : 'border-white/20 bg-transparent text-transparent'}">
+                    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                    </svg>
+                  </span>
+                </button>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+
+      function renderPlanTab() {
+        renderWeekdaySwitcher();
+        renderHeroCard();
+        renderTimeline();
+      }
+
+      function updateLiveClock() {
+        const now = new Date();
+        const hh = String(now.getHours()).padStart(2, '0');
+        const mm = String(now.getMinutes()).padStart(2, '0');
+        const clockEl = document.getElementById('header-clock');
+        if (clockEl) clockEl.textContent = `${hh}:${mm}`;
+      }
+
+      /* -------------------------------------------------------
+       * 9. SLOT MODAL (ADD / EDIT / DELETE)
+       * ----------------------------------------------------- */
+      function renderCategoryGridInModal() {
+        const grid = document.getElementById('slot-category-grid');
+        grid.innerHTML = Object.entries(CATEGORIES).map(([key, cat]) => {
+          const active = state.selectedCategoryInModal === key;
+          return `
+            <button type="button" data-pick-cat="${key}"
+              class="pressable min-h-[44px] px-3 rounded-2xl border flex items-center gap-2 text-left transition-all"
+              style="background:${active ? cat.bg : '#0D0D10'}; border-color:${active ? cat.color : 'rgba(255,255,255,0.08)'};">
+              <span style="color:${cat.color}">${cat.icon}</span>
+              <span class="text-[13px] font-semibold ${active ? 'text-white' : 'text-zinc-400'}">${cat.label}</span>
+            </button>
+          `;
+        }).join('');
+      }
+
+      function openSlotModal(slotId = null) {
+        const modal = document.getElementById('slot-modal');
+        const deleteBtn = document.getElementById('btn-delete-slot');
+        const titleEl = document.getElementById('slot-modal-title');
+
+        if (slotId) {
+          const slot = (state.schedule[state.selectedDay] || []).find(s => s.id === slotId);
+          if (!slot) return;
+          state.editingSlotId = slotId;
+          titleEl.textContent = 'Редактировать слот';
+          document.getElementById('slot-id').value = slot.id;
+          document.getElementById('slot-start').value = slot.start;
+          document.getElementById('slot-end').value = slot.end;
+          document.getElementById('slot-title').value = slot.title;
+          document.getElementById('slot-note').value = slot.note || '';
+          state.selectedCategoryInModal = slot.cat || 'rest';
+          deleteBtn.classList.remove('hidden');
+        } else {
+          state.editingSlotId = null;
+          titleEl.textContent = 'Новый слот';
+          document.getElementById('slot-id').value = '';
+          document.getElementById('slot-start').value = '18:00';
+          document.getElementById('slot-end').value = '19:00';
+          document.getElementById('slot-title').value = '';
+          document.getElementById('slot-note').value = '';
+          state.selectedCategoryInModal = 'love';
+          deleteBtn.classList.add('hidden');
+        }
+
+        renderCategoryGridInModal();
+        modal.classList.remove('sheet-hidden');
+      }
+
+      function closeSlotModal() {
+        document.getElementById('slot-modal').classList.add('sheet-hidden');
+      }
+
+      /* -------------------------------------------------------
+       * 10. SPORT TAB (DUMBBELL TRACKER + REST TIMER + AUDIO)
+       * ----------------------------------------------------- */
+      const timer = {
+        preset: 75,
+        remaining: 75,
+        running: false,
+        intervalId: null,
+        audioCtx: null
+      };
+
+      function playTimerChime() {
+        try {
+          const AudioCtx = window.AudioContext || window.webkitAudioContext;
+          if (!AudioCtx) return;
+          if (!timer.audioCtx) timer.audioCtx = new AudioCtx();
+          if (timer.audioCtx.state === 'suspended') timer.audioCtx.resume();
+
+          const now = timer.audioCtx.currentTime;
+          const notes = [659.25, 880, 1046.5]; // Soft pleasant E5 -> A5 -> C6 chime
+          notes.forEach((freq, i) => {
+            const osc = timer.audioCtx.createOscillator();
+            const gain = timer.audioCtx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(freq, now + i * 0.14);
+            gain.gain.setValueAtTime(0.001, now + i * 0.14);
+            gain.gain.exponentialRampToValueAtTime(0.18, now + i * 0.14 + 0.03);
+            gain.gain.exponentialRampToValueAtTime(0.0001, now + i * 0.14 + 0.45);
+            osc.connect(gain);
+            gain.connect(timer.audioCtx.destination);
+            osc.start(now + i * 0.14);
+            osc.stop(now + i * 0.14 + 0.48);
+          });
+        } catch (err) {
+          // Ignore audio restrictions silently
+        }
+      }
+
+      function updateTimerUI() {
+        const mins = Math.floor(timer.remaining / 60);
+        const secs = timer.remaining % 60;
+        document.getElementById('timer-display').textContent = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+
+        const circ = 169.65;
+        const pct = timer.preset > 0 ? timer.remaining / timer.preset : 0;
+        document.getElementById('timer-ring').style.strokeDashoffset = circ * (1 - pct);
+        document.getElementById('timer-ring').style.stroke = timer.remaining <= 10 && timer.running ? '#F59E0B' : '#10B981';
+
+        document.getElementById('timer-icon-play').classList.toggle('hidden', timer.running);
+        document.getElementById('timer-icon-pause').classList.toggle('hidden', !timer.running);
+        document.getElementById('timer-status-text').textContent = timer.running
+          ? 'Идёт отдых... восстанови дыхание'
+          : timer.remaining === 0
+            ? 'Отдых завершён — следующий подход!'
+            : 'Между подходами 60–90 сек';
+
+        document.querySelectorAll('.timer-preset').forEach(btn => {
+          const isSelected = Number(btn.dataset.preset) === timer.preset;
+          btn.className = `timer-preset pressable min-h-[32px] px-2.5 rounded-lg text-[12px] font-semibold border ${
+            isSelected
+              ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
+              : 'bg-white/[0.06] text-zinc-300 border-white/[0.06]'
+          }`;
+        });
+      }
+
+      function startTimer() {
+        // Warm up Web Audio on user interaction for iOS Safari
+        try {
+          const AudioCtx = window.AudioContext || window.webkitAudioContext;
+          if (AudioCtx && !timer.audioCtx) timer.audioCtx = new AudioCtx();
+          if (timer.audioCtx && timer.audioCtx.state === 'suspended') timer.audioCtx.resume();
+        } catch (e) {}
+
+        if (timer.remaining <= 0) timer.remaining = timer.preset;
+        timer.running = true;
+        clearInterval(timer.intervalId);
+        timer.intervalId = setInterval(() => {
+          timer.remaining--;
+          if (timer.remaining <= 0) {
+            timer.remaining = 0;
+            timer.running = false;
+            clearInterval(timer.intervalId);
+            playTimerChime();
+            showToast('Отдых закончен! Следующий подход', '#10B981');
+          }
+          updateTimerUI();
+        }, 1000);
+        updateTimerUI();
+      }
+
+      function pauseTimer() {
+        timer.running = false;
+        clearInterval(timer.intervalId);
+        updateTimerUI();
+      }
+
+      function resetTimer(newPreset = null) {
+        if (newPreset !== null) timer.preset = newPreset;
+        timer.running = false;
+        clearInterval(timer.intervalId);
+        timer.remaining = timer.preset;
+        updateTimerUI();
+      }
+
+      function updateAutoTimerSwitchUI() {
+        const btn = document.getElementById('btn-autotimer-toggle');
+        const knob = document.getElementById('autotimer-knob');
+        btn.setAttribute('aria-checked', String(state.autoStartTimer));
+        btn.classList.toggle('bg-emerald-500', state.autoStartTimer);
+        btn.classList.toggle('bg-white/15', !state.autoStartTimer);
+        knob.classList.toggle('translate-x-5', state.autoStartTimer);
+        knob.classList.toggle('translate-x-0', !state.autoStartTimer);
+      }
+
+      function renderSportTab() {
+        const segEl = document.getElementById('workout-segmented');
+        segEl.innerHTML = Object.values(WORKOUTS_PROGRAM).map(w => {
+          const active = w.key === state.selectedWorkout;
+          return `
+            <button type="button" data-workout-tab="${w.key}"
+              class="pressable min-h-[40px] rounded-xl text-[13px] font-semibold transition-all ${
+                active ? 'bg-white text-black shadow-sm' : 'text-zinc-400 hover:text-zinc-200'
+              }">
+              ${w.tabLabel}
+            </button>
+          `;
+        }).join('');
+
+        const workout = WORKOUTS_PROGRAM[state.selectedWorkout];
+        const warmupDone = !!state.workoutState.warmups[workout.key];
+
+        // Calculate completed sets count
+        let doneSets = 0;
+        const totalSets = workout.exercises.length * 3;
+        workout.exercises.forEach(ex => {
+          const arr = state.workoutState.sets[ex.id] || [false, false, false];
+          doneSets += arr.filter(Boolean).length;
+        });
+        const workoutPct = Math.round((doneSets / totalSets) * 100);
+
+        // Warmup & Progress Banner
+        document.getElementById('workout-warmup-container').innerHTML = `
+          <div class="space-y-2.5">
+            <div class="flex items-center justify-between px-1">
+              <div>
+                <h2 class="text-[17px] font-bold text-white">${workout.title}</h2>
+                <p class="text-[12px] text-[#8E8E93]">${workout.timeHint}</p>
+              </div>
+              <span class="text-[13px] font-bold tnum text-emerald-400">${doneSets}/${totalSets} подходов</span>
+            </div>
+
+            <div class="w-full h-1.5 rounded-full bg-white/[0.07] overflow-hidden">
+              <div class="h-full rounded-full bg-emerald-500 transition-all duration-300" style="width:${workoutPct}%"></div>
+            </div>
+
+            <!-- Warmup Checkbox Banner -->
+            <button type="button" id="btn-toggle-warmup"
+              class="pressable w-full min-h-[54px] rounded-2xl border px-4 py-3 flex items-center justify-between gap-3 text-left transition-all ${
+                warmupDone
+                  ? 'bg-emerald-500/12 border-emerald-500/35'
+                  : 'bg-[#151519] border-amber-500/25'
+              }">
+              <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${warmupDone ? 'bg-emerald-500/20 text-emerald-400' : 'bg-amber-500/15 text-amber-400'}">
+                  <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15.362 5.214A8.252 8.252 0 0112 21 8.25 8.25 0 016.038 7.048 8.287 8.287 0 009 9.6a8.983 8.983 0 013.361-6.867 8.21 8.21 0 003 2.48z" />
+                  </svg>
+                </div>
+                <div>
+                  <div class="text-[14px] font-semibold ${warmupDone ? 'line-through text-zinc-400' : 'text-white'}">Разминка суставов — 5 минут</div>
+                  <div class="text-[12px] text-[#8E8E93]">Обязательно перед началом работы с гантелями</div>
+                </div>
+              </div>
+              <span class="w-6 h-6 rounded-full border-2 shrink-0 flex items-center justify-center ${
+                warmupDone ? 'bg-emerald-500 border-emerald-500 text-black' : 'border-white/25 text-transparent'
+              }">
+                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                </svg>
+              </span>
+            </button>
+          </div>
+        `;
+
+        // Exercise Cards
+        document.getElementById('workout-exercises-list').innerHTML = workout.exercises.map((ex, i) => {
+          const sets = state.workoutState.sets[ex.id] || [false, false, false];
+          const weightVal = state.workoutState.weights[ex.id] || '';
+          const allDone = sets.every(Boolean);
+
+          return `
+            <div class="rounded-3xl bg-[#151519] border p-4 transition-all ${allDone ? 'border-emerald-500/35' : 'border-white/[0.08]'}">
+              <div class="flex items-start justify-between gap-3 mb-3">
+                <div class="flex items-start gap-2.5 min-w-0">
+                  <span class="w-6 h-6 rounded-lg text-[12px] font-bold flex items-center justify-center shrink-0 mt-0.5 ${
+                    allDone ? 'bg-emerald-500 text-black' : 'bg-white/[0.08] text-zinc-300'
+                  }">${i + 1}</span>
+                  <div class="min-w-0">
+                    <h3 class="text-[15px] font-semibold leading-snug ${allDone ? 'text-emerald-300' : 'text-white'}">${escapeHTML(ex.name)}</h3>
+                    <span class="inline-block mt-1 text-[12px] font-medium text-[#8E8E93]">${escapeHTML(ex.reps)}</span>
+                  </div>
+                </div>
+
+                <!-- Editable Weight Input -->
+                <div class="flex items-center gap-1 bg-[#0B0B0E] border border-white/[0.08] rounded-xl px-2 py-1 shrink-0">
+                  <input type="text" inputmode="decimal" data-weight-ex="${ex.id}" value="${escapeHTML(weightVal)}" placeholder="—"
+                    aria-label="Вес гантелей в кг"
+                    class="weight-input w-10 bg-transparent text-right text-[13px] font-semibold text-white tnum focus:outline-none placeholder-zinc-600" />
+                  <span class="text-[11px] text-[#8E8E93]">кг</span>
+                </div>
+              </div>
+
+              <!-- 3 Tappable Set Pills -->
+              <div class="grid grid-cols-3 gap-2">
+                ${[0, 1, 2].map(setIdx => {
+                  const done = !!sets[setIdx];
+                  return `
+                    <button type="button" data-set-ex="${ex.id}" data-set-idx="${setIdx}"
+                      class="set-pill pressable min-h-[44px] rounded-2xl border text-[13px] font-semibold flex items-center justify-center gap-1.5 transition-all ${
+                        done
+                          ? 'bg-emerald-500 text-black border-emerald-400 shadow-md shadow-emerald-500/15'
+                          : 'bg-[#0D0D10] text-zinc-300 border-white/[0.08]'
+                      }">
+                      ${done ? `<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.8"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>` : ''}
+                      <span>Подход ${setIdx + 1}</span>
+                    </button>
+                  `;
+                }).join('')}
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+
+      /* -------------------------------------------------------
+       * 11. PROJECTS TAB (CLAUDE VIBE-CODING HUB)
+       * ----------------------------------------------------- */
+      function renderProjectsTab() {
+        let totalTasks = 0;
+        let doneTasks = 0;
+        state.projects.forEach(p => {
+          totalTasks += p.tasks.length;
+          doneTasks += p.tasks.filter(t => t.done).length;
+        });
+
+        document.getElementById('projects-summary-pill').textContent = `${doneTasks} / ${totalTasks} задач`;
+
+        const listEl = document.getElementById('projects-list');
+        listEl.innerHTML = state.projects.map(proj => {
+          const st = PROJECT_STATUSES[proj.statusIndex % PROJECT_STATUSES.length];
+          const pTotal = proj.tasks.length;
+          const pDone = proj.tasks.filter(t => t.done).length;
+          const pct = pTotal > 0 ? Math.round((pDone / pTotal) * 100) : 0;
+
+          return `
+            <div class="rounded-3xl bg-[#151519] border border-white/[0.08] p-4 space-y-3.5 relative overflow-hidden">
+              <div class="absolute -right-8 -top-8 w-28 h-28 rounded-full blur-3xl opacity-20 pointer-events-none" style="background:${proj.accent}"></div>
+
+              <!-- Header & Toggleable Status Pill -->
+              <div class="flex items-start justify-between gap-2">
+                <div class="min-w-0">
+                  <span class="text-[11px] font-semibold uppercase tracking-wider text-[#8E8E93]">${escapeHTML(proj.tag)}</span>
+                  <h2 class="text-[18px] font-bold text-white leading-snug mt-0.5">${escapeHTML(proj.title)}</h2>
+                </div>
+                <button type="button" data-cycle-status="${proj.id}"
+                  class="pressable shrink-0 min-h-[34px] px-3 py-1 rounded-full text-[11.5px] font-semibold border flex items-center gap-1.5"
+                  style="background:${st.bg}; border-color:${st.border}; color:${st.text}">
+                  <span class="w-1.5 h-1.5 rounded-full" style="background:${st.text}"></span>
+                  ${st.label}
+                </button>
+              </div>
+
+              <!-- Progress Bar -->
+              <div>
+                <div class="flex items-center justify-between text-[12px] mb-1.5">
+                  <span class="text-[#8E8E93]">Прогресс</span>
+                  <span class="tnum font-semibold text-zinc-300">${pDone} из ${pTotal} (${pct}%)</span>
+                </div>
+                <div class="w-full h-2 rounded-full bg-white/[0.07] overflow-hidden">
+                  <div class="h-full rounded-full transition-all duration-300" style="width:${pct}%; background:${proj.accent}"></div>
+                </div>
+              </div>
+
+              <!-- Tasks List -->
+              <div class="space-y-2">
+                ${proj.tasks.map(task => `
+                  <div class="flex items-center gap-2 rounded-2xl bg-[#0D0D10] border border-white/[0.06] pl-2 pr-1.5 py-1.5">
+                    <button type="button" data-toggle-task="${proj.id}::${task.id}"
+                      class="pressable flex-1 min-h-[38px] flex items-center gap-2.5 text-left px-1">
+                      <span class="w-5 h-5 rounded-full border-2 shrink-0 flex items-center justify-center transition-all ${
+                        task.done ? 'bg-emerald-500 border-emerald-500 text-black' : 'border-white/25 text-transparent'
+                      }">
+                        <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/>
+                        </svg>
+                      </span>
+                      <span class="text-[13.5px] leading-snug ${task.done ? 'line-through text-zinc-500' : 'text-zinc-200'}">${escapeHTML(task.text)}</span>
+                    </button>
+                    <button type="button" data-delete-task="${proj.id}::${task.id}" aria-label="Удалить задачу"
+                      class="pressable w-9 h-9 rounded-xl flex items-center justify-center text-zinc-500 hover:text-rose-400 shrink-0">
+                      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                      </svg>
+                    </button>
+                  </div>
+                `).join('')}
+              </div>
+
+              <!-- Add New Task Form -->
+              <form data-add-task-form="${proj.id}" class="flex items-center gap-2 pt-1">
+                <input type="text" required placeholder="Добавить задачу или промпт..."
+                  class="flex-1 h-11 rounded-2xl bg-[#0B0B0E] border border-white/[0.08] px-3.5 text-[13.5px] text-white placeholder-zinc-600 focus:outline-none focus:border-white/25" />
+                <button type="submit" aria-label="Добавить задачу"
+                  class="pressable w-11 h-11 rounded-2xl bg-white/[0.1] hover:bg-white/[0.16] text-white flex items-center justify-center shrink-0">
+                  <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/>
+                  </svg>
+                </button>
+              </form>
+            </div>
+          `;
+        }).join('');
+      }
+
+      /* -------------------------------------------------------
+       * 12. EVENT LISTENERS (DELEGATED & SNAPPY)
+       * ----------------------------------------------------- */
+      function bindEvents() {
+        // Bottom Tab Bar
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+          btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+        });
+
+        // Weekday Switcher
+        document.getElementById('weekday-switcher').addEventListener('click', e => {
+          const btn = e.target.closest('[data-day]');
+          if (!btn) return;
+          state.selectedDay = btn.dataset.day;
+          renderPlanTab();
+        });
+
+        // Hero Card Quick Buttons
+        document.getElementById('now-hero-container').addEventListener('click', e => {
+          if (e.target.closest('#btn-jump-today')) {
+            state.selectedDay = getTodayDayKey();
+            renderPlanTab();
+            return;
+          }
+          const wBtn = e.target.closest('[data-jump-workout]');
+          if (wBtn) {
+            const key = wBtn.dataset.jumpWorkout;
+            if (WORKOUTS_PROGRAM[key]) state.selectedWorkout = key;
+            renderSportTab();
+            switchTab('sport');
+            return;
+          }
+          if (e.target.closest('[data-jump-projects]')) {
+            switchTab('projects');
+          }
+        });
+
+        // Timeline Interactions (Check, Jump, Edit)
+        document.getElementById('timeline-list').addEventListener('click', e => {
+          const checkBtn = e.target.closest('[data-toggle-slot]');
+          if (checkBtn) {
+            e.stopPropagation();
+            const slotId = checkBtn.dataset.toggleSlot;
+            if (!state.completedSlots[state.selectedDay]) state.completedSlots[state.selectedDay] = {};
+            state.completedSlots[state.selectedDay][slotId] = !state.completedSlots[state.selectedDay][slotId];
+            saveJSON('completed_slots', state.completedSlots);
+            renderTimeline();
+            return;
+          }
+
+          const wBtn = e.target.closest('[data-jump-workout]');
+          if (wBtn) {
+            e.stopPropagation();
+            const key = wBtn.dataset.jumpWorkout;
+            if (WORKOUTS_PROGRAM[key]) state.selectedWorkout = key;
+            renderSportTab();
+            switchTab('sport');
+            return;
+          }
+
+          const pBtn = e.target.closest('[data-jump-projects]');
+          if (pBtn) {
+            e.stopPropagation();
+            switchTab('projects');
+            return;
+          }
+
+          const card = e.target.closest('[data-edit-slot]');
+          if (card) {
+            openSlotModal(card.dataset.editSlot);
+          }
+        });
+
+        // Add Slot Button
+        document.getElementById('btn-add-slot').addEventListener('click', () => openSlotModal(null));
+        document.getElementById('btn-close-slot-modal').addEventListener('click', closeSlotModal);
+        document.getElementById('slot-modal-backdrop').addEventListener('click', closeSlotModal);
+
+        // Pick Category inside Slot Modal
+        document.getElementById('slot-category-grid').addEventListener('click', e => {
+          const btn = e.target.closest('[data-pick-cat]');
+          if (!btn) return;
+          state.selectedCategoryInModal = btn.dataset.pickCat;
+          renderCategoryGridInModal();
+        });
+
+        // Save Slot Form
+        document.getElementById('slot-form').addEventListener('submit', e => {
+          e.preventDefault();
+          const start = document.getElementById('slot-start').value;
+          const end = document.getElementById('slot-end').value;
+          const title = document.getElementById('slot-title').value.trim();
+          const note = document.getElementById('slot-note').value.trim();
+          const cat = state.selectedCategoryInModal;
+
+          if (!start || !end || !title) return;
+
+          const daySlots = state.schedule[state.selectedDay] || [];
+          if (state.editingSlotId) {
+            const idx = daySlots.findIndex(s => s.id === state.editingSlotId);
+            if (idx !== -1) {
+              daySlots[idx] = { ...daySlots[idx], start, end, title, note, cat };
+            }
+            showToast('Слот обновлён', CATEGORIES[cat].color);
+          } else {
+            daySlots.push({
+              id: `${state.selectedDay}-${Date.now()}`,
+              start,
+              end,
+              cat,
+              title,
+              note
+            });
+            showToast('Слот добавлен в план', CATEGORIES[cat].color);
+          }
+
+          state.schedule[state.selectedDay] = sortSlots(daySlots);
+          saveJSON('schedule', state.schedule);
+          closeSlotModal();
+          renderPlanTab();
+        });
+
+        // Delete Slot Button
+        document.getElementById('btn-delete-slot').addEventListener('click', () => {
+          if (!state.editingSlotId) return;
+          const targetId = state.editingSlotId;
+          closeSlotModal();
+          openConfirm({
+            title: 'Удалить этот слот?',
+            desc: 'Слот исчезнет из расписания этого дня. Базовый план всегда можно вернуть в настройках.',
+            okText: 'Удалить',
+            onConfirm: () => {
+              state.schedule[state.selectedDay] = (state.schedule[state.selectedDay] || []).filter(s => s.id !== targetId);
+              if (state.completedSlots[state.selectedDay]) {
+                delete state.completedSlots[state.selectedDay][targetId];
+              }
+              saveJSON('schedule', state.schedule);
+              saveJSON('completed_slots', state.completedSlots);
+              renderPlanTab();
+              showToast('Слот удалён', '#F43F5E');
+            }
+          });
+        });
+
+        // Settings Modal
+        const settingsModal = document.getElementById('settings-modal');
+        document.getElementById('btn-open-settings').addEventListener('click', () => settingsModal.classList.remove('sheet-hidden'));
+        document.getElementById('btn-close-settings').addEventListener('click', () => settingsModal.classList.add('sheet-hidden'));
+        document.getElementById('settings-modal-backdrop').addEventListener('click', () => settingsModal.classList.add('sheet-hidden'));
+
+        document.getElementById('btn-clear-day-checks').addEventListener('click', () => {
+          state.completedSlots[state.selectedDay] = {};
+          saveJSON('completed_slots', state.completedSlots);
+          settingsModal.classList.add('sheet-hidden');
+          renderPlanTab();
+          showToast('Галочки за день сброшены', '#06B6D4');
+        });
+
+        document.getElementById('btn-restore-default-schedule').addEventListener('click', () => {
+          settingsModal.classList.add('sheet-hidden');
+          openConfirm({
+            title: 'Сбросить весь план?',
+            desc: 'Восстановится твоё базовое расписание с Пн по Вс, включая школу, Амирочку, английский, тренировки и проекты.',
+            okText: 'Сбросить',
+            onConfirm: () => {
+              state.schedule = getDefaultSchedule();
+              state.completedSlots = {};
+              saveJSON('schedule', state.schedule);
+              saveJSON('completed_slots', state.completedSlots);
+              renderPlanTab();
+              showToast('Базовый план восстановлен', '#10B981');
+            }
+          });
+        });
+
+        // Custom Confirm Sheet Actions
+        document.getElementById('btn-confirm-cancel').addEventListener('click', closeConfirm);
+        document.getElementById('confirm-modal-backdrop').addEventListener('click', closeConfirm);
+        document.getElementById('btn-confirm-ok').addEventListener('click', () => {
+          const fn = confirmCallback;
+          closeConfirm();
+          if (typeof fn === 'function') fn();
+        });
+
+        // Sport Tab Events
+        document.getElementById('workout-segmented').addEventListener('click', e => {
+          const btn = e.target.closest('[data-workout-tab]');
+          if (!btn) return;
+          state.selectedWorkout = btn.dataset.workoutTab;
+          renderSportTab();
+        });
+
+        document.getElementById('workout-warmup-container').addEventListener('click', e => {
+          if (e.target.closest('#btn-toggle-warmup')) {
+            const key = state.selectedWorkout;
+            state.workoutState.warmups[key] = !state.workoutState.warmups[key];
+            saveJSON('workout_state', state.workoutState);
+            renderSportTab();
+          }
+        });
+
+        document.getElementById('workout-exercises-list').addEventListener('click', e => {
+          const setBtn = e.target.closest('[data-set-ex]');
+          if (!setBtn) return;
+          const exId = setBtn.dataset.setEx;
+          const idx = Number(setBtn.dataset.setIdx);
+          if (!state.workoutState.sets[exId]) state.workoutState.sets[exId] = [false, false, false];
+          const nextVal = !state.workoutState.sets[exId][idx];
+          state.workoutState.sets[exId][idx] = nextVal;
+          saveJSON('workout_state', state.workoutState);
+          renderSportTab();
+
+          if (nextVal && state.autoStartTimer) {
+            resetTimer();
+            startTimer();
+          }
+        });
+
+        document.getElementById('workout-exercises-list').addEventListener('input', e => {
+          const inp = e.target.closest('[data-weight-ex]');
+          if (!inp) return;
+          const exId = inp.dataset.weightEx;
+          state.workoutState.weights[exId] = inp.value;
+          saveJSON('workout_state', state.workoutState);
+        });
+
+        document.getElementById('btn-reset-workout').addEventListener('click', () => {
+          const workout = WORKOUTS_PROGRAM[state.selectedWorkout];
+          openConfirm({
+            title: 'Сбросить тренировку?',
+            desc: `Все выполненные подходы и разминка для «${workout.title}» очистятся. Веса гантелей сохранятся.`,
+            okText: 'Сбросить',
+            onConfirm: () => {
+              state.workoutState.warmups[workout.key] = false;
+              workout.exercises.forEach(ex => {
+                state.workoutState.sets[ex.id] = [false, false, false];
+              });
+              saveJSON('workout_state', state.workoutState);
+              resetTimer();
+              renderSportTab();
+              showToast('Тренировка сброшена — готов к новой!', '#10B981');
+            }
+          });
+        });
+
+        // Rest Timer Controls
+        document.querySelectorAll('.timer-preset').forEach(btn => {
+          btn.addEventListener('click', () => resetTimer(Number(btn.dataset.preset)));
+        });
+        document.getElementById('btn-timer-toggle').addEventListener('click', () => {
+          if (timer.running) pauseTimer();
+          else startTimer();
+        });
+        document.getElementById('btn-timer-reset').addEventListener('click', () => resetTimer());
+
+        document.getElementById('btn-autotimer-toggle').addEventListener('click', () => {
+          state.autoStartTimer = !state.autoStartTimer;
+          saveJSON('auto_timer', state.autoStartTimer);
+          updateAutoTimerSwitchUI();
+        });
+
+        // Projects Tab Events
+        document.getElementById('projects-list').addEventListener('click', e => {
+          const statusBtn = e.target.closest('[data-cycle-status]');
+          if (statusBtn) {
+            const proj = state.projects.find(p => p.id === statusBtn.dataset.cycleStatus);
+            if (!proj) return;
+            proj.statusIndex = (proj.statusIndex + 1) % PROJECT_STATUSES.length;
+            saveJSON('projects', state.projects);
+            renderProjectsTab();
+            return;
+          }
+
+          const toggleBtn = e.target.closest('[data-toggle-task]');
+          if (toggleBtn) {
+            const [projId, taskId] = toggleBtn.dataset.toggleTask.split('::');
+            const proj = state.projects.find(p => p.id === projId);
+            const task = proj && proj.tasks.find(t => t.id === taskId);
+            if (!task) return;
+            task.done = !task.done;
+            saveJSON('projects', state.projects);
+            renderProjectsTab();
+            return;
+          }
+
+          const delBtn = e.target.closest('[data-delete-task]');
+          if (delBtn) {
+            const [projId, taskId] = delBtn.dataset.deleteTask.split('::');
+            const proj = state.projects.find(p => p.id === projId);
+            if (!proj) return;
+            proj.tasks = proj.tasks.filter(t => t.id !== taskId);
+            saveJSON('projects', state.projects);
+            renderProjectsTab();
+            showToast('Задача удалена', '#F97316');
+          }
+        });
+
+        document.getElementById('projects-list').addEventListener('submit', e => {
+          const form = e.target.closest('[data-add-task-form]');
+          if (!form) return;
+          e.preventDefault();
+          const projId = form.dataset.addTaskForm;
+          const input = form.querySelector('input');
+          const text = input.value.trim();
+          if (!text) return;
+          const proj = state.projects.find(p => p.id === projId);
+          if (!proj) return;
+          proj.tasks.push({ id: `t-${Date.now()}`, text, done: false });
+          saveJSON('projects', state.projects);
+          renderProjectsTab();
+          showToast('Задача добавлена', proj.accent);
+        });
+
+        // Claude Notes Auto-save & Copy
+        const notesEl = document.getElementById('claude-notes-textarea');
+        const notesStatus = document.getElementById('notes-save-status');
+        notesEl.value = state.claudeNotes;
+
+        let notesSaveTimer = null;
+        notesEl.addEventListener('input', () => {
+          notesStatus.textContent = 'Сохраняю...';
+          clearTimeout(notesSaveTimer);
+          notesSaveTimer = setTimeout(() => {
+            state.claudeNotes = notesEl.value;
+            saveJSON('claude_notes', state.claudeNotes);
+            notesStatus.textContent = 'Сохранено';
+          }, 300);
+        });
+
+        document.getElementById('btn-copy-notes').addEventListener('click', () => {
+          if (!notesEl.value.trim()) {
+            showToast('Заметки пока пустые', '#8E8E93');
+            return;
+          }
+          try {
+            notesEl.select();
+            notesEl.setSelectionRange(0, 99999);
+            document.execCommand('copy');
+            window.getSelection().removeAllRanges();
+            showToast('Скопировано для Claude!', '#F97316');
+          } catch (err) {
+            showToast('Не удалось скопировать', '#F43F5E');
+          }
+        });
+      }
+
+      /* -------------------------------------------------------
+       * 13. INITIALIZATION
+       * ----------------------------------------------------- */
+      function init() {
+        bindEvents();
+        updateLiveClock();
+        updateTimerUI();
+        updateAutoTimerSwitchUI();
+        renderPlanTab();
+        renderSportTab();
